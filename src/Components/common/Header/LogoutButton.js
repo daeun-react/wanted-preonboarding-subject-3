@@ -5,7 +5,7 @@ import { LOGGEDIN_USER } from "Utils/constants";
 import { loadLocalStorage, loggedOutStorage } from "Utils/Storage";
 import profile from "Assets/img/profile.png";
 
-const LogoutButton = () => {
+const LogoutButton = ({ setLoggedInUser }) => {
   const dropdownRef = useRef(null);
   const [activeMenu, setActiveMenu] = useState(false);
   const userData = loadLocalStorage(LOGGEDIN_USER);
@@ -20,6 +20,7 @@ const LogoutButton = () => {
   const onClick = () => setActiveMenu(!activeMenu);
   const handleLogout = () => {
     loggedOutStorage();
+    setLoggedInUser(null);
   };
 
   useEffect(() => {
@@ -28,6 +29,7 @@ const LogoutButton = () => {
       if (activeMenu) {
         window.addEventListener("click", pageClickEvent);
       }
+
       return () => {
         window.removeEventListener("click", pageClickEvent);
       };
