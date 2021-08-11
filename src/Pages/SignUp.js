@@ -1,33 +1,14 @@
 import React, { useState } from "react";
 import styled, { css } from "styled-components";
-import Input from "Components/common/Input";
-import Button from "Components/common/Button";
-import Radio from "Components/common/Radio";
-import Modal from "Components/common/Modal/Modal";
-import AddressModal from "Components/common/Modal/AddressModal";
-import SignupModal from "Components/common/Modal/SignupModal";
-import CreditModal from "Components/common/Modal/CreditModal";
-import {
-  isEmail,
-  isPassword,
-  isName,
-  isDateOfBirth,
-  isCreditNum,
-  isEng,
-  isPwNum,
-  isSpe,
-} from "Utils/validator.js";
+
+import * as regexFunc from "Utils/validator.js";
 import { hashSync } from "Utils/bcrypt";
 import { AUTH_LEVEL, USER_STORAGE } from "Utils/constants";
 import { loadLocalStorage, saveLocalStorage, autoIncrementUserId } from "Utils/Storage";
-import { ReactComponent as Mail } from "Assets/svg/mail.svg";
-import { ReactComponent as ClosedEye } from "Assets/svg/eye_closed.svg";
-import { ReactComponent as OpenedEye } from "Assets/svg/eye_opened.svg";
-import { ReactComponent as Person } from "Assets/svg/person.svg";
-import { ReactComponent as Map } from "Assets/svg/map.svg";
-import { ReactComponent as Card } from "Assets/svg/card.svg";
-import { ReactComponent as Calendar } from "Assets/svg/calendar.svg";
-import checkIcon from "Assets/svg/check.svg";
+
+import { Button, Input, Radio } from "Components/common";
+import { Modal, AddressModal, CreditModal, SignupModal } from "Components/common/Modal";
+import { Calendar, Card, ClosedEye, OpenedEye, Mail, Map, Person, checkIcon } from "Assets/svg";
 
 const SignUp = () => {
   const [modalType, setModalType] = useState("");
@@ -69,14 +50,14 @@ const SignUp = () => {
 
   const validator = {
     authority: (authority) => !(authority === AUTH_LEVEL.unknown),
-    email: (email) => isEmail(email),
-    pw: (pw) => isPassword(pw),
+    email: (email) => regexFunc.isEmail(email),
+    pw: (pw) => regexFunc.isPassword(pw),
     pwCheck: (pwCheck) => pwCheck === formData.pw,
-    name: (name) => isName(name),
+    name: (name) => regexFunc.isName(name),
     address: (address) => !(address === ""),
     detailAddress: (detailAddress) => !(detailAddress === ""),
-    dateOfBirth: (dateOfBirth) => isDateOfBirth(dateOfBirth),
-    creditCardNum: (creditCardNum) => isCreditNum(creditCardNum),
+    dateOfBirth: (dateOfBirth) => regexFunc.isDateOfBirth(dateOfBirth),
+    creditCardNum: (creditCardNum) => regexFunc.isCreditNum(creditCardNum),
   };
 
   const isAllValid = (data) => {
@@ -103,7 +84,7 @@ const SignUp = () => {
   const handleClickDuplicateCheck = () => {
     setEmailDuplicateChecked(true);
 
-    if (!isEmail(formData.email)) {
+    if (!regexFunc.isEmail(formData.email)) {
       setErrors({ ...errors, email: true });
       setEmailDuplicateStatus(SIGNUP_EMAIL_STATUS.invalidType);
       return;
@@ -174,9 +155,9 @@ const SignUp = () => {
     if (name === "pw") {
       setPasswordError({
         ...passwordError,
-        eng: isEng(value) >= 0,
-        pwNum: isPwNum(value) >= 0,
-        spe: isSpe(value) >= 0,
+        eng: regexFunc.isEng(value) >= 0,
+        pwNum: regexFunc.isPwNum(value) >= 0,
+        spe: regexFunc.isSpe(value) >= 0,
         digit: value.length >= 8,
       });
     }
