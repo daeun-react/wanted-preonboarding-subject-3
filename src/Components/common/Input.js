@@ -14,13 +14,14 @@ const Input = (
     errorMessage = null,
     successMessage = null,
     width = "100%",
+    isVisible = true,
     numberOnly = false,
     maxLength = null,
   },
   ref
 ) => {
   return (
-    <Wrapper width={width}>
+    <Wrapper width={width} isVisible={isVisible}>
       <InputWrapper error={error} numberOnly={numberOnly}>
         <input
           ref={ref}
@@ -41,6 +42,7 @@ const Input = (
 
 const Wrapper = styled.div`
   width: ${({ width }) => width || "100%"};
+  display: ${({ isVisible }) => (isVisible ? "block" : "none")};
   padding: 10px 0;
 `;
 
@@ -74,7 +76,7 @@ const InputWrapper = styled.div`
       `}
   }
 
-  svg {
+  img {
     position: absolute;
     right: 16px;
     width: 18px;

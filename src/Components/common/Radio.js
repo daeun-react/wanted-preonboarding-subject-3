@@ -12,7 +12,7 @@ const Radio = ({ name, value, onChange, data = [], error = false, errorMessage =
               type="radio"
               name={name}
               checked={value === item.value}
-              onChange={() => onChange(item.value)}
+              onChange={() => onChange(name, item.value)}
             />
             <span>{item.label}</span>
           </label>

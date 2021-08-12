@@ -1,56 +1,162 @@
 import React, { useState } from "react";
 import styled, { css } from "styled-components";
-
 import * as regexFunc from "Utils/validator.js";
 import { hashSync } from "Utils/bcrypt";
 import { AUTH_LEVEL, USER_STORAGE } from "Utils/constants";
 import { loadLocalStorage, saveLocalStorage, autoIncrementUserId } from "Utils/Storage";
-
+import {
+  SIGNUP_ALL_ELEMENTS,
+  SIGNUP_INPUT_ELEMENTS,
+  SIGNUP_EMAIL_ERROR_TYPE,
+  SIGNUP_PASSWORD_POLICY,
+} from "Utils/signup/constants";
 import { Button, Input, Radio } from "Components/common";
 import { Modal, AddressModal, CreditModal, SignupModal } from "Components/common/Modal";
-import { Calendar, Card, ClosedEye, OpenedEye, Mail, Map, Person, checkIcon } from "Assets/svg";
+import { checkIcon } from "Assets/svg";
 
 const SignUp = () => {
-  const [modalType, setModalType] = useState("");
+  const defaultFormData = SIGNUP_ALL_ELEMENTS.reduce(
+    (acc, cur) => (acc = { ...acc, [cur.name]: cur.default }),
+    {}
+  );
+  const defaultErrors = SIGNUP_ALL_ELEMENTS.reduce(
+    (acc, cur) => (acc = { ...acc, [cur.name]: false }),
+    {}
+  );
+  const defaultPassworError = SIGNUP_PASSWORD_POLICY.reduce(
+    (acc, cur) => (acc = { ...acc, [cur.name]: false }),
+    {}
+  );
+  const [formData, setFormData] = useState(defaultFormData);
+  const [errors, setErrors] = useState(defaultErrors);
+  const [passwordError, setPasswordError] = useState(defaultPassworError);
+  const [emailErrorStatus, setEmailErrorStatus] = useState(SIGNUP_EMAIL_ERROR_TYPE.default);
+  const [isEmailDuplicateChecked, setEmailDuplicateChecked] = useState(false);
+  const [isVisiblePassword, setVisiblePassword] = useState(false);
+  const [modalName, setModalName] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [emailDuplicateStatus, setEmailDuplicateStatus] = useState(SIGNUP_EMAIL_STATUS.default);
-  const [emailDuplicateChecked, setEmailDuplicateChecked] = useState(false);
-  const [visiblePassword, setVisiblePassword] = useState(true);
-  const [passwordCheckError, setPasswordCheckError] = useState(false);
-  const [passwordError, setPasswordError] = useState({
-    pwNum: false,
-    eng: false,
-    spe: false,
-    digit: false,
-  });
-  const [formData, setFormData] = useState({
-    authority: AUTH_LEVEL.unknown,
-    email: "",
-    pw: "",
-    pwCheck: "",
-    name: "",
-    address: "",
-    detailAddress: "",
-    creditCardNum: "",
-    dateOfBirth: "",
-  });
 
-  const initialState = {
-    authority: false,
-    email: false,
-    pw: false,
-    pwCheck: false,
-    name: false,
-    address: false,
-    detailAddress: false,
-    creditCardNum: false,
-    dateOfBirth: false,
+  const getInpuType = (name) => {
+    if (name.includes("pw")) {
+      return isVisiblePassword ? "text" : "password";
+    }
+    return "text";
   };
-  const [errors, setErrors] = useState(initialState);
+
+  const getInputIcon = (name) => {
+    if (name.includes("pw")) {
+      const src = isVisiblePassword
+        ? SIGNUP_INPUT_ELEMENTS.find((item) => item.name === name).icon.openIcon
+        : SIGNUP_INPUT_ELEMENTS.find((item) => item.name === name).icon.closeIcon;
+      return <img src={src} alt={name} onClick={() => setVisiblePassword(!isVisiblePassword)} />;
+    }
+    const src = SIGNUP_INPUT_ELEMENTS.find((item) => item.name === name).icon;
+    return <img src={src} alt={name} />;
+  };
+
+  const getInputIsVisible = (name) => {
+    if (name === "detailAddress") {
+      return formData.address.length ? true : false;
+    }
+    return true;
+  };
+
+  const getErrorMessage = (name) => {
+    return name === "email"
+      ? emailErrorStatus.message
+      : SIGNUP_INPUT_ELEMENTS.find((item) => item.name === name).errorMessage;
+  };
+
+  const getSuccessMessage = (name) => {
+    return name === "email" && isEmailDuplicateChecked && "사용 가능한 이메일 입니다";
+  };
+
+  const handleChangeFormData = (key, value) => {
+    setFormData({
+      ...formData,
+      [key]: value,
+    });
+    handleChangeError(key, false);
+  };
+
+  const handleChangeError = (key, value) => {
+    setErrors({ ...errors, [key]: value });
+  };
+
+  const handleChangeInput = (e) => {
+    const { name, value } = e.target;
+    handleChangeFormData(name, value);
+    handleChangeError(name, false);
+
+    name === "email" && setEmailDuplicateChecked(false);
+    name === "pw" &&
+      setPasswordError({
+        ...passwordError,
+        eng: regexFunc.isEng(value) >= 0,
+        pwNum: regexFunc.isPwNum(value) >= 0,
+        spe: regexFunc.isSpe(value) >= 0,
+        digit: value.length >= 8,
+      });
+    name === "pwCheck" && value !== formData.pw && handleChangeError("pwCheck", true);
+  };
+
+  const handleClickDuplicateCheck = () => {
+    setEmailDuplicateChecked(true);
+    if (!regexFunc.isEmail(formData.email)) {
+      handleChangeError("email", true);
+      setEmailErrorStatus(SIGNUP_EMAIL_ERROR_TYPE.regexFailure);
+      return;
+    }
+
+    const userData = loadLocalStorage(USER_STORAGE);
+    const isExistEmail = userData.find((user) => user.email === formData.email);
+    if (isExistEmail) {
+      handleChangeError("email", true);
+      setEmailErrorStatus(SIGNUP_EMAIL_ERROR_TYPE.duplicated);
+      return;
+    }
+
+    setEmailErrorStatus(SIGNUP_EMAIL_ERROR_TYPE.default);
+    handleChangeError("email", false);
+  };
+
+  const showModal = (name) => {
+    if (name !== "address" && name !== "creditCardNum") {
+      return;
+    }
+    setModalName(name);
+    setModalOpen((prev) => !prev);
+  };
+
+  const showSelectedModal = () => {
+    switch (modalName) {
+      case "success":
+        return <SignupModal />;
+      case "address":
+        return (
+          <AddressModal
+            modalName={modalName}
+            toggleModal={setModalOpen}
+            onChange={handleChangeFormData}
+          />
+        );
+      case "creditCardNum":
+        return (
+          <CreditModal
+            modalName={modalName}
+            toggleModal={setModalOpen}
+            onChange={handleChangeFormData}
+            creditCard={formData.creditCardNum}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   const validator = {
     authority: (authority) => !(authority === AUTH_LEVEL.unknown),
-    email: (email) => regexFunc.isEmail(email),
+    email: (email) => regexFunc.isEmail(email) && !(emailErrorStatus.statusCode === 3),
     pw: (pw) => regexFunc.isPassword(pw),
     pwCheck: (pwCheck) => pwCheck === formData.pw,
     name: (name) => regexFunc.isName(name),
@@ -64,123 +170,21 @@ const SignUp = () => {
     for (const name in data) {
       const value = data[name];
       const validateFunction = validator[name];
-
       if (!validateFunction(value)) {
-        setErrors((prev) => ({
-          ...prev,
-          [name]: true,
-        }));
+        handleChangeError(name, true);
         return false;
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          [name]: false,
-        }));
       }
+      handleChangeError(name, false);
     }
     return true;
-  };
-
-  const handleClickDuplicateCheck = () => {
-    setEmailDuplicateChecked(true);
-
-    if (!regexFunc.isEmail(formData.email)) {
-      setErrors({ ...errors, email: true });
-      setEmailDuplicateStatus(SIGNUP_EMAIL_STATUS.invalidType);
-      return;
-    }
-
-    const userData = loadLocalStorage(USER_STORAGE);
-    if (!userData) {
-      setErrors({ ...errors, email: false });
-      setEmailDuplicateStatus(SIGNUP_EMAIL_STATUS.confirmedSuccess);
-      return;
-    }
-
-    const searchEmail = userData.filter((user) => user.email === formData.email);
-    if (searchEmail.length) {
-      setErrors({ ...errors, email: true });
-      setEmailDuplicateStatus(SIGNUP_EMAIL_STATUS.confirmedFailure);
-    } else {
-      setErrors({ ...errors, email: false });
-      setEmailDuplicateStatus(SIGNUP_EMAIL_STATUS.confirmedSuccess);
-    }
-  };
-
-  const getEmailStatusMessage = (status) => {
-    let message = errors.email ? "이메일을 입력하세요" : "";
-    if (status === SIGNUP_EMAIL_STATUS.invalidType) message = "이메일 형식을 확인해주세요";
-    else if (status === SIGNUP_EMAIL_STATUS.unConfirmed) message = "중복 검사를 진행해주세요";
-    else if (status === SIGNUP_EMAIL_STATUS.confirmedFailure) message = "중복된 이메일 입니다.";
-    return message;
-  };
-
-  const toggleModal = (modal) => {
-    setModalOpen(!modalOpen);
-    setModalType(modal);
-  };
-
-  const handleSetAuthority = (authority) => {
-    setErrors(initialState);
-    setFormData({
-      ...formData,
-      authority,
-    });
-  };
-
-  const handleSetAddressValue = (address) => {
-    setErrors(initialState);
-    setFormData({
-      ...formData,
-      address,
-    });
-  };
-
-  const handleSetCardNum = (creditCardNum) => {
-    setErrors(initialState);
-    setFormData({
-      ...formData,
-      creditCardNum,
-    });
-  };
-
-  const handleSignUpChange = (e) => {
-    const { name, value } = e.target;
-    setErrors(initialState);
-
-    if (name === "email") {
-      setEmailDuplicateChecked(false);
-    }
-
-    if (name === "pw") {
-      setPasswordError({
-        ...passwordError,
-        eng: regexFunc.isEng(value) >= 0,
-        pwNum: regexFunc.isPwNum(value) >= 0,
-        spe: regexFunc.isSpe(value) >= 0,
-        digit: value.length >= 8,
-      });
-    }
-
-    if (name === "pwCheck") {
-      setPasswordCheckError(value !== formData.pw);
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
   };
 
   const handleSignupSubmit = (e) => {
     e.preventDefault();
 
-    if (!emailDuplicateChecked) {
-      setErrors((prev) => ({
-        ...prev,
-        email: true,
-      }));
-      setEmailDuplicateStatus(SIGNUP_EMAIL_STATUS.unConfirmed);
+    if (!isEmailDuplicateChecked) {
+      setEmailErrorStatus(SIGNUP_EMAIL_ERROR_TYPE.unConfirmed);
+      handleChangeError("email", true);
       return;
     }
 
@@ -194,7 +198,9 @@ const SignUp = () => {
       userData
         ? saveLocalStorage(USER_STORAGE, [...userData, formData])
         : saveLocalStorage(USER_STORAGE, [formData]);
-      toggleModal("success");
+
+      setModalOpen((prev) => !prev);
+      setModalName("success");
     }
   };
 
@@ -206,7 +212,7 @@ const SignUp = () => {
         <Radio
           name="authority"
           value={formData.authority}
-          onChange={handleSetAuthority}
+          onChange={handleChangeFormData}
           data={[
             { value: AUTH_LEVEL.teacher, label: "선생님" },
             { value: AUTH_LEVEL.parent, label: "부모님" },
@@ -215,144 +221,46 @@ const SignUp = () => {
           errorMessage="원하시는 계정 유형을 선택해 주세요."
         />
 
-        <EmailWrapper>
-          <Input
-            name="email"
-            value={formData.email}
-            onChange={handleSignUpChange}
-            placeholder="이메일을 입력하세요"
-            icon={<Mail />}
-            error={errors.email}
-            errorMessage={getEmailStatusMessage(emailDuplicateStatus)}
-            successMessage={emailDuplicateChecked && "사용 가능한 이메일 입니다"}
-            width="75%"
-          />
-          <Button value="중복확인" width="20%" onClick={handleClickDuplicateCheck} />
-        </EmailWrapper>
+        {SIGNUP_INPUT_ELEMENTS.map((item, idx) => {
+          const { name, placeholder, width, maxLength } = item;
+          return (
+            <div key={idx} className={`${name}-wrapper`} onClick={() => showModal(name)}>
+              <Input
+                name={name}
+                value={formData[name]}
+                placeholder={placeholder}
+                width={width}
+                maxLength={maxLength}
+                type={getInpuType(name)}
+                icon={getInputIcon(name)}
+                isVisible={getInputIsVisible(name)}
+                error={errors[name]}
+                errorMessage={getErrorMessage(name)}
+                successMessage={getSuccessMessage(name)}
+                onChange={handleChangeInput}
+              />
 
-        <Input
-          name="pw"
-          value={formData.pw}
-          onChange={handleSignUpChange}
-          placeholder="비밀번호를 입력하세요"
-          type={visiblePassword ? "password" : "text"}
-          icon={
-            visiblePassword ? (
-              <ClosedEye onClick={() => setVisiblePassword(!visiblePassword)} />
-            ) : (
-              <OpenedEye onClick={() => setVisiblePassword(!visiblePassword)} />
-            )
-          }
-          error={errors.pw}
-          errorMessage="비밀번호를 다시 입력해 주세요"
-        />
-
-        <PasswordPolicy passwordError={passwordError}>
-          <div>
-            <span className="password-pwNum">숫자</span>
-          </div>
-          <div>
-            <span className="password-spe">특수문자</span>
-          </div>
-          <div>
-            <span className="password-eng">영문</span>
-          </div>
-          <div>
-            <span className="password-digit">8자리 이상</span>
-          </div>
-        </PasswordPolicy>
-
-        <Input
-          name="pwCheck"
-          value={formData.pwCheck}
-          onChange={handleSignUpChange}
-          placeholder="비밀번호를 다시 입력하세요"
-          type={visiblePassword ? "password" : "text"}
-          icon={
-            visiblePassword ? (
-              <ClosedEye onClick={() => setVisiblePassword(!visiblePassword)} />
-            ) : (
-              <OpenedEye onClick={() => setVisiblePassword(!visiblePassword)} />
-            )
-          }
-          error={passwordCheckError}
-          errorMessage="비밀번호를 다시 입력해 주세요"
-        />
-
-        <Input
-          name="name"
-          value={formData.name}
-          onChange={handleSignUpChange}
-          placeholder="이름을 입력하세요"
-          icon={<Person />}
-          error={errors.name}
-          errorMessage="이름을 다시 입력해 주세요"
-        />
-
-        <AddressWrapper>
-          <div className="address-main" onClick={() => toggleModal("address")}>
-            <Input
-              name="address"
-              value={formData.address}
-              placeholder="주소를 입력하세요"
-              icon={<Map />}
-              error={errors.address}
-              errorMessage="주소를 다시 입력해 주세요"
-            />
-            <span>주소검색</span>
-          </div>
-          {formData.address && (
-            <Input
-              name="detailAddress"
-              value={formData.detailAddress}
-              onChange={handleSignUpChange}
-              placeholder="상세주소를 입력하세요"
-              icon={<Map />}
-              error={errors.detailAddress}
-              errorMessage="상세주소를 다시 입력해 주세요"
-            />
-          )}
-        </AddressWrapper>
-
-        <CreditCardWrapper onClick={() => toggleModal("credit")}>
-          <Input
-            name="creditCardNum"
-            value={formData.creditCardNum}
-            placeholder="신용카드 정보를 입력하세요"
-            icon={<Card />}
-            error={errors.creditCardNum}
-            errorMessage="카드번호를 다시 입력해 주세요"
-          />
-          <span>번호입력</span>
-        </CreditCardWrapper>
-
-        <Input
-          name="dateOfBirth"
-          value={formData.dateOfBirth}
-          onChange={handleSignUpChange}
-          placeholder="생년월일 6자리를 입력하세요"
-          icon={<Calendar />}
-          error={errors.dateOfBirth}
-          maxLength={6}
-          errorMessage="생년월일을 다시 입력해 주세요"
-        />
+              {name === "email" && (
+                <Button value="중복확인" width="20%" onClick={handleClickDuplicateCheck} />
+              )}
+              {name === "pw" && (
+                <PasswordPolicy passwordError={passwordError}>
+                  {SIGNUP_PASSWORD_POLICY.map((list, idx) => (
+                    <span key={idx} className={`password-${list.name}`}>
+                      {list.label}
+                    </span>
+                  ))}
+                </PasswordPolicy>
+              )}
+              {name === "address" && <span>주소검색</span>}
+              {name === "creditCardNum" && <span>번호입력</span>}
+            </div>
+          );
+        })}
 
         <Button type="submit" value="회원가입" marginTop="10px" />
-
-        <Modal isOpen={modalOpen} toggleModal={toggleModal} modalType={modalType}>
-          <>
-            {modalType === "success" && <SignupModal />}
-            {modalType === "address" && (
-              <AddressModal toggleModal={toggleModal} onSelected={handleSetAddressValue} />
-            )}
-            {modalType === "credit" && (
-              <CreditModal
-                creditCard={formData.creditCardNum}
-                handleSetCardNum={handleSetCardNum}
-                toggleModal={toggleModal}
-              />
-            )}
-          </>
+        <Modal isOpen={modalOpen} toggleModal={setModalOpen} modalName={modalName}>
+          {modalOpen && showSelectedModal()}
         </Modal>
       </Form>
     </Wrapper>
@@ -363,6 +271,24 @@ const Wrapper = styled.div`
   ${({ theme }) => theme.flexSet("center", "center", "column")};
   width: 100%;
   height: calc(100% - 72px);
+`;
+
+const OpenModalText = css`
+  position: relative;
+  span {
+    position: absolute;
+    top: 12.5px;
+    right: 2px;
+    color: ${({ theme }) => theme.color.green};
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 50px 13px 0;
+    cursor: pointer;
+    background-color: white;
+  }
+  img {
+    z-index: 1;
+  }
 `;
 
 const Form = styled.form`
@@ -376,26 +302,25 @@ const Form = styled.form`
     font-weight: 500;
     text-align: center;
   }
-
-  @media (max-width: 768px) {
-    width: 100%;
-    padding: 40px 0;
+  .email-wrapper {
+    ${({ theme }) => theme.flexSet("space-between")};
+  }
+  .address-wrapper {
+    ${OpenModalText}
+  }
+  .creditCardNum-wrapper {
+    ${OpenModalText}
   }
 `;
 
-const EmailWrapper = styled.div`
-  ${({ theme }) => theme.flexSet("space-between")};
+const PasswordPolicySuccessStyle = css`
+  color: ${({ theme }) => theme.color.green};
+  font-weight: 600;
 `;
 
 const PasswordPolicy = styled.div`
   ${({ theme }) => theme.flexSet("space-around")};
-
-  > div {
-    span {
-      color: ${({ theme }) => theme.color.borderline};
-      text-align: center;
-      font-size: 15px;
-    }
+  span {
     &::before {
       display: inline-block;
       background: url(${checkIcon});
@@ -403,85 +328,21 @@ const PasswordPolicy = styled.div`
       width: 20px;
       height: 16px;
     }
-    .password-pwNum {
-      ${(props) =>
-        props.passwordError.pwNum &&
-        css`
-          color: ${({ theme }) => theme.color.green};
-          font-weight: 600;
-        `};
-    }
-    .password-eng {
-      ${(props) =>
-        props.passwordError.eng &&
-        css`
-          color: ${({ theme }) => theme.color.green};
-          font-weight: 600;
-        `};
-    }
-    .password-spe {
-      ${(props) =>
-        props.passwordError.spe &&
-        css`
-          color: ${({ theme }) => theme.color.green};
-          font-weight: 600;
-        `};
-    }
-    .password-digit {
-      ${(props) =>
-        props.passwordError.digit &&
-        css`
-          color: ${({ theme }) => theme.color.green};
-          font-weight: 600;
-        `};
-    }
+    color: ${({ theme }) => theme.color.borderline};
+    font-size: 15px;
+  }
+  .password-pwNum {
+    ${({ passwordError }) => passwordError.pwNum && PasswordPolicySuccessStyle}
+  }
+  .password-eng {
+    ${({ passwordError }) => passwordError.eng && PasswordPolicySuccessStyle}
+  }
+  .password-spe {
+    ${({ passwordError }) => passwordError.spe && PasswordPolicySuccessStyle}
+  }
+  .password-digit {
+    ${({ passwordError }) => passwordError.digit && PasswordPolicySuccessStyle}
   }
 `;
-
-const AddressWrapper = styled.div`
-  position: relative;
-
-  span {
-    position: absolute;
-    top: 12.5px;
-    right: 2px;
-    color: ${({ theme }) => theme.color.green};
-    font-size: 13px;
-    font-weight: 600;
-    padding: 10px 50px 13px 0;
-    cursor: pointer;
-    background-color: white;
-  }
-  svg {
-    z-index: 1;
-  }
-`;
-
-const CreditCardWrapper = styled.div`
-  position: relative;
-
-  span {
-    position: absolute;
-    top: 12.5px;
-    right: 2px;
-    color: ${({ theme }) => theme.color.green};
-    font-size: 13px;
-    font-weight: 600;
-    padding: 10px 50px 13px 0;
-    cursor: pointer;
-    background-color: white;
-  }
-  svg {
-    z-index: 1;
-  }
-`;
-
-const SIGNUP_EMAIL_STATUS = {
-  default: 0,
-  invalidType: 1,
-  unConfirmed: 2,
-  confirmedFailure: 3,
-  confirmedSuccess: 4,
-};
 
 export default SignUp;
