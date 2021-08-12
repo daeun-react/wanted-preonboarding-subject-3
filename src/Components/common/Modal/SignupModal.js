@@ -5,12 +5,10 @@ import styled from "styled-components";
 const SignupModal = () => {
   const history = useHistory();
   useEffect(() => {
-    const timeoutID = setTimeout(() => {
+    setTimeout(() => {
       history.replace("/login");
     }, 2000);
-
-    return () => clearTimeout(timeoutID);
-  }, [history]);
+  });
 
   return (
     <Wrapper>

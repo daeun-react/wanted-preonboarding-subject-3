@@ -8,9 +8,7 @@ import { USER_STORAGE, LOGGEDIN_USER } from "Utils/constants";
 import { loadLocalStorage, saveLocalStorage } from "Utils/Storage";
 import { compareSync } from "Utils/bcrypt";
 import { isEmail } from "Utils/validator";
-import { ReactComponent as Mail } from "Assets/svg/mail.svg";
-import { ReactComponent as ClosedEye } from "Assets/svg/eye_closed.svg";
-import { ReactComponent as OpenedEye } from "Assets/svg/eye_opened.svg";
+import { mail, closedEye, openedEye } from "Assets/svg";
 
 const Login = () => {
   const history = useHistory();
@@ -85,7 +83,7 @@ const Login = () => {
           value={formData.email}
           onChange={handleLoginChange}
           placeholder="이메일을 입력하세요"
-          icon={<Mail />}
+          icon={<img src={mail} alt="email" />}
           error={errors.email}
           errorMessage="이메일을 다시 확인해 주세요."
         />
@@ -98,9 +96,9 @@ const Login = () => {
           type={visiblePassword ? "password" : "text"}
           icon={
             visiblePassword ? (
-              <ClosedEye onClick={() => setVisiblePassword(!visiblePassword)} />
+              <img src={closedEye} alt="pw" onClick={() => setVisiblePassword(!visiblePassword)} />
             ) : (
-              <OpenedEye onClick={() => setVisiblePassword(!visiblePassword)} />
+              <img src={openedEye} alt="pw" onClick={() => setVisiblePassword(!visiblePassword)} />
             )
           }
           error={errors.pw}

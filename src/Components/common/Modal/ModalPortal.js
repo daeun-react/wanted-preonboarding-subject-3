@@ -2,10 +2,10 @@ import { useRef } from "react";
 import ReactDOM from "react-dom";
 import styled from "styled-components";
 
-const ModalPortal = ({ toggleModal, modalType, children }) => {
+const ModalPortal = ({ toggleModal, modalName, children }) => {
   const ref = useRef(null);
   const handleClick = (e) => {
-    if (ref.current === e.target && modalType !== "success") {
+    if (ref.current === e.target && modalName !== "success") {
       toggleModal();
     }
   };

@@ -1,7 +1,7 @@
 import React from "react";
 import DaumPostcode from "react-daum-postcode";
 
-const AddressModal = ({ toggleModal, onSelected }) => {
+const AddressModal = ({ modalName, toggleModal, onChange }) => {
   const handlePostCode = (data) => {
     let fullAddress = "[" + data.zonecode + "]" + data.address;
     let extraAddress = "";
@@ -16,7 +16,7 @@ const AddressModal = ({ toggleModal, onSelected }) => {
       fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
     }
 
-    onSelected(fullAddress);
+    onChange(modalName, fullAddress);
     toggleModal();
   };
 
