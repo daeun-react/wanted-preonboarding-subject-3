@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import styled, { css } from "styled-components";
+
 import * as regexFunc from "Utils/validator.js";
 import { hashSync } from "Utils/bcrypt";
 import { AUTH_LEVEL, USER_STORAGE } from "Utils/constants";
@@ -10,6 +11,7 @@ import {
   SIGNUP_EMAIL_ERROR_TYPE,
   SIGNUP_PASSWORD_POLICY,
 } from "Utils/signup/constants";
+
 import { Button, Input, Radio } from "Components/common";
 import { Modal, AddressModal, CreditModal, SignupModal } from "Components/common/Modal";
 import { checkIcon } from "Assets/svg";
@@ -273,7 +275,7 @@ const Wrapper = styled.div`
   height: calc(100% - 72px);
 `;
 
-const OpenModalText = css`
+const OpenModalTextStyle = css`
   position: relative;
   span {
     position: absolute;
@@ -306,10 +308,10 @@ const Form = styled.form`
     ${({ theme }) => theme.flexSet("space-between")};
   }
   .address-wrapper {
-    ${OpenModalText}
+    ${OpenModalTextStyle}
   }
   .creditCardNum-wrapper {
-    ${OpenModalText}
+    ${OpenModalTextStyle}
   }
 `;
 
